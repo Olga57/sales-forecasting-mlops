@@ -1,0 +1,15 @@
+# Все текстовые файлы — нормализовать окончания строк
+* text=auto
+
+# Явно для Python
+*.py text eol=lf
+
+# YAML
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Markdown и документация
+*.md text eol=lf
+
+# JSON, конфиги
+*.json text eol=lf

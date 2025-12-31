@@ -1,0 +1,32 @@
+# configs/preprocessing/base.yaml
+
+target_col: "MT_Volume KG"
+row_label_col: "Row_Labels"
+
+missing_values:
+  drop_threshold_ratio: 0.4 # доля допустимых NaN
+  fill_strategy: "group_mean" # пока фиксируем, но расширяемо
+
+date_features:
+  enabled: true
+  date_col: "PER_SDESC"
+  add_year: true
+  add_month_sin_cos: true
+
+target_transform:
+  log_transform: true
+
+scaling:
+  enabled: true
+  exclude_cols:
+    - "Year"
+
+categorical:
+  enabled: true
+  drop_cols:
+    - "Row_Labels"
+    - "PER_SDESC"
+  ohe:
+    drop: null
+    handle_unknown: "ignore"
+    sparse: false

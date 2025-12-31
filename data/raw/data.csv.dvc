@@ -1,0 +1,12 @@
+outs:
+- md5: a53ff240955bd37834db78750cb442ca
+  size: 470385
+  hash: md5
+  path: data.csv
+md5: d5b858ab7086d8a29dbd959d2f94d10b
+frozen: true
+deps:
+- checksum: '"a53ff240955bd37834db78750cb442ca"'
+  size: 470385
+  hash: md5
+  path: https://storage.yandexcloud.net/fmcgdata/data.csv

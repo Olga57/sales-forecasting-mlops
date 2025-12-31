@@ -1,0 +1,7 @@
+path_in_dvc: "data/raw/data.csv"
+year_min: 2024
+year_max: 2024
+checkpoint_path: "checkpoints/best.ckpt"
+input_size: 1
+hidden_size: 64
+num_workers: 4

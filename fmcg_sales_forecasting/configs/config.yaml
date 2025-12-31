@@ -1,0 +1,10 @@
+defaults:
+  - dataset: dataset.yaml
+  - model: tft.yaml
+  - train: trainer.yaml
+  - mlflow: mlflow.yaml
+  - preprocessing: base.yaml
+  - infer: infer.yaml
+  - _self_
+
+device: "auto"

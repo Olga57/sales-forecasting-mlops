@@ -1,0 +1,8 @@
+past_window: 3
+horizon: 3
+year_min: null
+year_max: null
+target_col: "MT_Volume KG"
+time_col: "PER_SDESC"
+year_col: "Year"
+batch_size: 32
