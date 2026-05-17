@@ -279,6 +279,7 @@ pre-commit run -a
 
 ```bash
 poetry run mlflow ui --port 5000
+```
 
 2. Отдельным окном
 
@@ -314,6 +315,7 @@ poetry run python -m fmcg_sales_forecasting.training.train
 
 ```bash
 poetry run python -m fmcg_sales_forecasting.infer.fmcg_inference
+```
 
 Запуск FastAPI 
 poetry run uvicorn fmcg_sales_forecasting.api.app:app --reload
