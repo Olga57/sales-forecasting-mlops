@@ -1,10 +1,10 @@
 import subprocess
-
 import dvc.api
 import hydra
 import joblib
 import pandas as pd
 import torch
+
 from omegaconf import DictConfig
 from pytorch_lightning.loggers import MLFlowLogger
 from torch.utils.data import DataLoader
@@ -17,48 +17,54 @@ from ..training.train import TFTLightningModule
 
 def download_data(path_in_dvc: str) -> pd.DataFrame:
     with dvc.api.open(path_in_dvc, repo=".") as f:
-        df = pd.read_csv(f)
-    return df
+        return pd.read_csv(f)
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     torch.manual_seed(42)
 
+    # ======================
+    # LOGGING
+    # ======================
     mlflow_logger = MLFlowLogger(
         experiment_name=cfg.mlflow.experiment_name,
         tracking_uri=cfg.mlflow.tracking_uri
     )
 
-    git_commit = subprocess.getoutput("git rev-parse HEAD")
     mlflow_logger.log_hyperparams({
-        "past_window": cfg.dataset.past_window,
-        "horizon": cfg.dataset.horizon,
-        "batch_size": cfg.dataset.batch_size,
-        "checkpoint_path": cfg.infer.checkpoint_path,
-        "git_commit": git_commit
+        "git_commit": subprocess.getoutput("git rev-parse HEAD")
     })
 
+    # ======================
+    # LOAD DATA
+    # ======================
     df = download_data(cfg.infer.path_in_dvc)
+
     scaler = joblib.load("artifacts/scaler.pkl")
     ohe = joblib.load("artifacts/ohe.pkl")
-
 
     df, _, _ = preprocess_fmcg(
         df,
         ohe=ohe,
         scaler=scaler,
         cfg=cfg.preprocessing,
-        fit=True
+        fit=False
     )
+
+    # ======================
+    # DATASET (SOURCE OF TRUTH)
+    # ======================
     test_dataset = FMCGForecastDataset(
         df,
         past_window=cfg.dataset.past_window,
         horizon=cfg.dataset.horizon,
-        year_col="Year",
-        year_min=cfg.dataset.year_min,
-        year_max=cfg.dataset.year_max
+        year_col=cfg.dataset.year_col,
+        year_min=cfg.infer.year_min,
+        year_max=cfg.infer.year_max
     )
+
+    num_vars = len(test_dataset.feature_cols)
 
     test_loader = DataLoader(
         test_dataset,
@@ -67,15 +73,25 @@ def main(cfg: DictConfig):
         num_workers=cfg.infer.num_workers
     )
 
-    model = TFTLightningModule.load_from_checkpoint(
-        checkpoint_path=cfg.infer.checkpoint_path,
-        cfg=cfg,
-        num_vars=len(test_dataset.feature_cols)
+
+    ckpt = torch.load(
+        cfg.infer.checkpoint_path,
+        map_location="cpu",
+        weights_only=False
     )
+
+
+    model = TFTLightningModule(
+        cfg=cfg,
+        num_vars=num_vars
+    )
+
+    model.load_state_dict(ckpt["state_dict"])
     model.eval()
 
 
     all_preds, all_targets = [], []
+
     with torch.no_grad():
         for x, y in test_loader:
             y_hat, _ = model(x)
@@ -84,6 +100,7 @@ def main(cfg: DictConfig):
 
     all_preds = torch.cat(all_preds, dim=0)
     all_targets = torch.cat(all_targets, dim=0)
+
 
     metrics = {
         "MAE": mae(all_targets, all_preds).item(),
@@ -95,7 +112,7 @@ def main(cfg: DictConfig):
     for k, v in metrics.items():
         print(f"{k}: {v}")
 
-    mlflow_logger.log_metrics({k: float(v) for k, v in metrics.items()})
+    mlflow_logger.log_metrics(metrics)
 
 
 if __name__ == "__main__":
